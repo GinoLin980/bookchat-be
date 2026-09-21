@@ -4,6 +4,8 @@ import (
 	"bookchat/internal/config"
 	"bookchat/internal/database"
 	"log"
+	"log/slog"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -11,8 +13,11 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("failed to load .env")
+		logger.Error("failed to load .env")
+		os.Exit(1)
 	}
 
 	config := config.GetConfig()

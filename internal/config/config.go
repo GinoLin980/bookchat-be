@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"log/slog"
 	"os"
 )
 
@@ -13,7 +14,7 @@ type Config struct {
 	DBName string
 }
 
-func GetConfig() Config {
+func GetConfig(logger *slog.Logger) Config {
 	dbHost := os.Getenv("PG_HOST")
 	dbPort := os.Getenv("PG_PORT")
 	dbUser := os.Getenv("PG_USER")
@@ -21,7 +22,8 @@ func GetConfig() Config {
 	dbName := os.Getenv("PG_DB")
 
 	if dbHost == "" || dbPort == "" || dbUser == "" || dbPswd == "" || dbName == "" {
-		log.Fatal("Database env var not set")
+		slog.Error("Database env var not set")
+		os.Exit(1)
 	}
 
 	return Config{
