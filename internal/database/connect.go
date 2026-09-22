@@ -20,7 +20,7 @@ func ConnectDB(config config.Config, logger *slog.Logger) *gorm.DB {
 		config.DBPort,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)

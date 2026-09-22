@@ -31,14 +31,6 @@ func NewUserService(jwtService JWTService, userRepo repo.UserRepo, logger *slog.
 	}
 }
 
-var params = &argon2id.Params{
-	Memory:      64 * 1024,
-	Iterations:  3,
-	Parallelism: 2,
-	SaltLength:  16, // bytes
-	KeyLength:   32, // bytes
-}
-
 func (s *userService) Login(ctx context.Context, req *dto.UsersRequest) (*dto.UsersResponse, error) {
 	user, err := s.userRepo.GetUserLogin(ctx, req.Username)
 	if err != nil {
@@ -70,7 +62,15 @@ func (s *userService) Login(ctx context.Context, req *dto.UsersRequest) (*dto.Us
 }
 
 func (s *userService) Register(ctx context.Context, req *dto.UsersRequest) (*dto.UsersResponse, error) {
-	hashed, err := argon2id.CreateHash(req.Password, params)
+	hashed, err := argon2id.CreateHash(req.Password,
+		&argon2id.Params{
+			Memory:      64 * 1024,
+			Iterations:  3,
+			Parallelism: 2,
+			SaltLength:  16, // bytes
+			KeyLength:   32, // bytes
+		},
+	)
 	if err != nil {
 		s.logger.Error(err.Error())
 		return nil, internalerror.ErrUserHashError

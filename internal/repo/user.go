@@ -71,6 +71,9 @@ func (r *userRepo) GetUsersByName(ctx context.Context, username string) ([]model
 
 func (r *userRepo) CreateUser(ctx context.Context, user *model.User) error {
 	if err := gorm.G[model.User](r.db).Create(ctx, user); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return internalerror.ErrDuplicatedError
+		}
 		r.logger.Error(err.Error())
 		return internalerror.ErrDatabaseErr
 	}

@@ -2,11 +2,9 @@ package logger
 
 import (
 	"context"
-	"log/slog"
-	"os"
-
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	"log/slog"
 )
 
 func NewAndUseLogger(e *echo.Echo, logger *slog.Logger) {

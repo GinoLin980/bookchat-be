@@ -56,6 +56,9 @@ func (h *userHandler) Register(c *echo.Context) error {
 
 	result, err := h.userService.Register(c.Request().Context(), req)
 	if err != nil {
+		if errors.Is(err, internalerror.ErrDuplicatedError) {
+			return c.JSON(http.StatusConflict, map[string]string{"message": "you have already registered"})
+		}
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
