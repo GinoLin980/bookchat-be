@@ -8,11 +8,11 @@ import (
 
 type CustomJWTClaims struct {
 	Username string `json:"username"`
-	UserID   int    `json:"user_id"`
+	UserID   uint   `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-func NewCustomJWTClaims(username string, userID int, expires time.Duration) *CustomJWTClaims {
+func NewCustomJWTClaims(username string, userID uint, expires time.Duration) *CustomJWTClaims {
 	return &CustomJWTClaims{
 		username,
 		userID,

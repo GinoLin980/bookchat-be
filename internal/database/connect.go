@@ -3,7 +3,6 @@ package database
 import (
 	"bookchat/internal/config"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 
@@ -13,7 +12,7 @@ import (
 
 func ConnectDB(config config.Config, logger *slog.Logger) *gorm.DB {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=enabled",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=prefer",
 		config.DBHost,
 		config.DBUser,
 		config.DBPswd,

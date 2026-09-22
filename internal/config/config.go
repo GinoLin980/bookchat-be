@@ -1,20 +1,21 @@
 package config
 
 import (
-	"log"
 	"log/slog"
 	"os"
 )
 
 type Config struct {
-	DBHost string
-	DBPort string
-	DBUser string
-	DBPswd string
-	DBName string
+	JWTSecret string
+	DBHost    string
+	DBPort    string
+	DBUser    string
+	DBPswd    string
+	DBName    string
 }
 
 func GetConfig(logger *slog.Logger) Config {
+	jwtSecret := os.Getenv("JWT_SECRET")
 	dbHost := os.Getenv("PG_HOST")
 	dbPort := os.Getenv("PG_PORT")
 	dbUser := os.Getenv("PG_USER")
@@ -27,6 +28,7 @@ func GetConfig(logger *slog.Logger) Config {
 	}
 
 	return Config{
+		jwtSecret,
 		dbHost,
 		dbPort,
 		dbUser,

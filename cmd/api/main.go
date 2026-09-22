@@ -3,7 +3,7 @@ package main
 import (
 	"bookchat/internal/config"
 	"bookchat/internal/database"
-	"log"
+	"bookchat/internal/route"
 	"log/slog"
 	"os"
 
@@ -20,9 +20,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	config := config.GetConfig()
+	config := config.GetConfig(logger)
 
-	db := database.ConnectDB(config)
+	db := database.ConnectDB(config, logger)
 
 	e := echo.New()
 
@@ -30,11 +30,13 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.RemoveTrailingSlash())
 
+	route.LoadRoutes(e, config.JWTSecret, db, logger)
+
 	e.GET("/", func(c *echo.Context) error {
 		return c.JSON(200, map[string]string{"hello": "world"})
 	})
 
 	if err := e.Start(":8080"); err != nil {
-		e.Logger.Error("can't start server")
+		e.Logger.Error("port might be used, can't start server")
 	}
 }
