@@ -7,7 +7,7 @@ import (
 type Comment struct {
 	gorm.Model
 	UserID  uint
-	Poster  User `gorm:"not null;foreignKey: UserID"`
+	Poster  User `gorm:"not null;foreignKey:UserID"`
 	RoomID  uint
 	Content string
 }
