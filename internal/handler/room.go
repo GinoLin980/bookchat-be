@@ -18,6 +18,8 @@ type RoomHandler interface {
 	GetRooms(c *echo.Context) error
 	CreateRoom(c *echo.Context) error
 	UpdateRoom(c *echo.Context) error
+	ApproveUser(c *echo.Context) error
+	ApplyRequest(c *echo.Context) error
 }
 
 type roomHandler struct {
@@ -88,7 +90,7 @@ func (h *roomHandler) CreateRoom(c *echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, room.ToResponse(claims.UserID, []model.User{}))
+	return c.JSON(http.StatusCreated, room.ToResponse(claims.UserID, []model.User{}, []model.User{}))
 }
 
 func (h *roomHandler) UpdateRoom(c *echo.Context) error {
@@ -110,4 +112,48 @@ func (h *roomHandler) UpdateRoom(c *echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *roomHandler) ApproveUser(c *echo.Context) error {
+	claims, err := customjwt.GetClaimsFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	req, err := BindAndValidate[dto.RoomApproveRequest](c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.ApproveRequested(c.Request().Context(), claims.UserID, req.ApproveUserID, req.RoomID); err != nil {
+		if errors.Is(err, internalerror.ErrUserForbidden) {
+			return c.NoContent(http.StatusForbidden)
+		} else if errors.Is(err, internalerror.ErrUnprocessableEntity) {
+			return c.JSON(http.StatusUnprocessableEntity, "user not in request list, ask user to request the room first")
+		}
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *roomHandler) ApplyRequest(c *echo.Context) error {
+	claims, err := customjwt.GetClaimsFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	roomID, err := echo.PathParam[uint](c, "id")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if err := h.service.ApplyRequested(c.Request().Context(), claims.UserID, roomID); err != nil {
+		if errors.Is(err, internalerror.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		}
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.NoContent(http.StatusOK)
 }

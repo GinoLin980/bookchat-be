@@ -13,6 +13,7 @@ type Room struct {
 	UserID     uint
 	Moderator  User   `gorm:"not null;foreignKey:UserID"`
 	Registered []uint `gorm:"serializer:json"`
+	Requested  []uint `gorm:"serializer:json"`
 
 	Title      string `gorm:"not null"` // room's title
 	BookTitle  string `gorm:"not null"`
@@ -36,14 +37,7 @@ func (r Room) ToPreviewResponse() dto.RoomPreviewResponse {
 	}
 }
 
-func (r Room) ToResponse(userID uint, registeredUsers []User) dto.RoomReponse {
-	role := "general"
-	if userID == r.UserID {
-		role = "moderator"
-	} else if slices.Contains(r.Registered, userID) {
-		role = "registered"
-	}
-
+func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.RoomReponse {
 	comments := []dto.CommentReponse{}
 	for _, comment := range r.Comments {
 		comments = append(comments, comment.ToResponse())
@@ -54,6 +48,18 @@ func (r Room) ToResponse(userID uint, registeredUsers []User) dto.RoomReponse {
 		roomRegisteredUsers = append(roomRegisteredUsers, user.ToRoomUserReponse())
 	}
 
+	requestedUsers := []dto.RoomUser{}
+
+	role := "general"
+	if userID == r.UserID {
+		role = "moderator"
+		for _, user := range requested {
+			requestedUsers = append(requestedUsers, user.ToRoomUserReponse())
+		}
+	} else if slices.Contains(r.Registered, userID) {
+		role = "registered"
+	}
+
 	result := dto.RoomReponse{
 		RoomID:     r.ID,
 		Title:      r.Title,
@@ -62,6 +68,7 @@ func (r Room) ToResponse(userID uint, registeredUsers []User) dto.RoomReponse {
 		Moderator:  r.Moderator.ToRoomUserReponse(),
 		Role:       role,
 		Registered: roomRegisteredUsers,
+		Requested:  requestedUsers,
 		CreatedAt:  r.CreatedAt,
 
 		ScheduledDate: r.ScheduledDate,

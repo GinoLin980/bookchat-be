@@ -7,16 +7,18 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"gorm.io/gorm"
 )
 
 type RoomRepo interface {
-	GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, error)
+	GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, []model.User, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, room *model.Room) (model.Room, error)
 	UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error
+	ApplyRequest(ctx context.Context, userID, roomID uint) error
 }
 
 type roomRepo struct {
@@ -31,7 +33,7 @@ func NewRoomRepo(db *gorm.DB, logger *slog.Logger) RoomRepo {
 	}
 }
 
-func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, error) {
+func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, []model.User, error) {
 	room, err := gorm.G[model.Room](r.db).
 		Preload("Moderator", nil).
 		Preload("Comments", nil).
@@ -39,19 +41,25 @@ func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, []mode
 		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return room, nil, internalerror.ErrRecordNotFound
+			return room, nil, nil, internalerror.ErrRecordNotFound
 		}
 		r.logger.Error(err.Error())
-		return room, nil, internalerror.ErrDatabaseErr
+		return room, nil, nil, internalerror.ErrDatabaseErr
 	}
 
 	registeredUsers, err := gorm.G[model.User](r.db).Where(query.User.ID.In(room.Registered...)).Find(ctx)
 	if err != nil {
 		r.logger.Error(err.Error())
-		return room, nil, internalerror.ErrDatabaseErr
+		return room, nil, nil, internalerror.ErrDatabaseErr
 	}
 
-	return room, registeredUsers, nil
+	requestedUsers, err := gorm.G[model.User](r.db).Where(query.User.ID.In(room.Requested...)).Find(ctx)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return room, nil, nil, internalerror.ErrDatabaseErr
+	}
+
+	return room, registeredUsers, requestedUsers, nil
 }
 
 func (r *roomRepo) GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error) {
@@ -107,6 +115,30 @@ func (r *roomRepo) UpdateRoom(ctx context.Context, userID, roomID uint, room mod
 	}
 	if rowsAffected == 0 {
 		return internalerror.ErrUserForbidden
+	}
+
+	return nil
+}
+
+func (r *roomRepo) ApplyRequest(ctx context.Context, userID, roomID uint) error {
+	room, err := gorm.G[model.Room](r.db).Where(query.Room.ID.Eq(roomID)).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return internalerror.ErrRecordNotFound
+		}
+		r.logger.Error(err.Error())
+		return internalerror.ErrDatabaseErr
+	}
+
+	if slices.Contains(room.Requested, userID) {
+		return nil // no-op idempotency
+	}
+	requestedUsers := append(room.Requested, userID)
+	updateRoom := model.Room{Requested: requestedUsers}
+
+	if _, err := gorm.G[model.Room](r.db).Where(query.Room.ID.Eq(roomID)).Updates(ctx, updateRoom); err != nil {
+		r.logger.Error(err.Error())
+		return internalerror.ErrDatabaseErr
 	}
 
 	return nil

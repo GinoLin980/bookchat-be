@@ -7,6 +7,7 @@ import (
 	"bookchat/internal/repo"
 	"context"
 	"log/slog"
+	"slices"
 )
 
 type RoomService interface {
@@ -14,6 +15,8 @@ type RoomService interface {
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error)
 	UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error
+	ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error
+	ApplyRequested(ctx context.Context, userID, roomID uint) error
 }
 
 type roomService struct {
@@ -31,12 +34,12 @@ func NewRoomService(repo repo.RoomRepo, logger *slog.Logger) RoomService {
 func (s *roomService) GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomReponse, error) {
 	var resp dto.RoomReponse
 
-	room, registeredUsers, err := s.repo.GetRoom(ctx, roomID)
+	room, registeredUsers, requestedUsers, err := s.repo.GetRoom(ctx, roomID)
 	if err != nil {
 		return resp, err
 	}
 
-	resp = room.ToResponse(userID, registeredUsers)
+	resp = room.ToResponse(userID, registeredUsers, requestedUsers)
 
 	return resp, err
 }
@@ -68,7 +71,7 @@ func (s *roomService) CreateRoom(ctx context.Context, userID uint, req *dto.Room
 }
 
 func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error {
-	ogRoom, _, err := s.repo.GetRoom(ctx, req.RoomID)
+	ogRoom, _, _, err := s.repo.GetRoom(ctx, req.RoomID)
 	if err != nil {
 		return err
 	}
@@ -84,8 +87,14 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.Room
 		AssignedToComment: ogRoom.AssignedToComment,
 	}
 
-	if req.AddUserID != 0 {
-		room.Registered = append(ogRoom.Registered, req.AddUserID)
+	// approve user into registered
+	if req.ApproveUserID != 0 {
+		idx := slices.Index(ogRoom.Requested, req.ApproveUserID)
+		if idx == -1 { // safe guard
+			return internalerror.ErrUnprocessableEntity
+		}
+		room.Registered = append(ogRoom.Registered, req.ApproveUserID)
+		room.Requested = slices.Delete(ogRoom.Requested, idx, idx+1)
 	}
 
 	if err := s.repo.UpdateRoom(ctx, userID, req.RoomID, room); err != nil {
@@ -93,4 +102,16 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.Room
 	}
 
 	return nil
+}
+
+func (s *roomService) ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error {
+	if err := s.UpdateRoom(ctx, userID, &dto.RoomUpdateRequest{RoomID: roomID, ApproveUserID: requestUserID}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *roomService) ApplyRequested(ctx context.Context, userID, roomID uint) error {
+	return s.repo.ApplyRequest(ctx, userID, roomID)
 }

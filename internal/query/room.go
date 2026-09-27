@@ -17,6 +17,7 @@ var Room = struct {
 	UserID            field.Number[uint]
 	Moderator         field.Struct[model.User]
 	Registered        field.Slice[uint]
+	Requested         field.Slice[uint]
 	Title             field.String
 	BookTitle         field.String
 	BookAuthor        field.String
@@ -32,6 +33,7 @@ var Room = struct {
 	UserID:            field.Number[uint]{}.WithColumn("user_id"),
 	Moderator:         field.Struct[model.User]{}.WithName("Moderator"),
 	Registered:        field.Slice[uint]{}.WithName("Registered"),
+	Requested:         field.Slice[uint]{}.WithName("Requested"),
 	Title:             field.String{}.WithColumn("title"),
 	BookTitle:         field.String{}.WithColumn("book_title"),
 	BookAuthor:        field.String{}.WithColumn("book_author"),

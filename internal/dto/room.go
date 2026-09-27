@@ -16,7 +16,13 @@ type RoomUpdateRequest struct {
 	BookAuthor        string    `json:"book_author"`
 	ScheduledDate     time.Time `json:"scheduled_date"`
 	AddUserID         uint      `json:"add_user_id"`
+	ApproveUserID     uint      `json:"approve_user_id"`
 	AssignedToComment uint      `json:"assigned_to_comment"`
+}
+
+type RoomApproveRequest struct {
+	RoomID        uint `json:"room_id" validate:"required"`
+	ApproveUserID uint `json:"approve_user_id" validate:"required"`
 }
 
 type RoomPreviewResponse struct {
@@ -35,6 +41,7 @@ type RoomReponse struct {
 	BookAuthor string     `json:"book_author"`
 	Moderator  RoomUser   `json:"moderator"`
 	Registered []RoomUser `json:"registered"`
+	Requested  []RoomUser `json:"requested"`
 	Role       string     `json:"role"`
 	CreatedAt  time.Time  `json:"created_at"`
 
