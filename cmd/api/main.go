@@ -28,11 +28,11 @@ func main() {
 	config := config.GetConfig(logger)
 
 	db := database.ConnectDB(config, logger)
-	db.AutoMigrate(&model.User{})
+	db.AutoMigrate(&model.User{}, &model.Room{}, &model.Comment{})
 
 	e := echo.New()
 
-	e.Validator = &customvalidator.CustomValidator{V: validator.New()}
+	e.Validator = &customvalidator.CustomValidator{V: customvalidator.InitValidator()}
 	e.HTTPErrorHandler = func(c *echo.Context, err error) {
 		if resp, rerr := echo.UnwrapResponse(c.Response()); rerr == nil && resp != nil && resp.Committed {
 			return

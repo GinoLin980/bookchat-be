@@ -10,10 +10,10 @@ import (
 )
 
 type RoomService interface {
-	GetRoom(ctx context.Context, roomID uint) (model.Room, error)
+	GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomReponse, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
-	CreateRoom(ctx context.Context, userID uint, req dto.RoomRequest) error
-	UpdateRoom(ctx context.Context, userID, roomID uint, req dto.RoomUpdateRequest) error
+	CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error)
+	UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error
 }
 
 type roomService struct {
@@ -28,13 +28,17 @@ func NewRoomService(repo repo.RoomRepo, logger *slog.Logger) RoomService {
 	}
 }
 
-func (s *roomService) GetRoom(ctx context.Context, roomID uint) (model.Room, error) {
-	room, err := s.repo.GetRoom(ctx, roomID)
+func (s *roomService) GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomReponse, error) {
+	var resp dto.RoomReponse
+
+	room, registeredUsers, err := s.repo.GetRoom(ctx, roomID)
 	if err != nil {
-		return room, err
+		return resp, err
 	}
 
-	return room, err
+	resp = room.ToResponse(userID, registeredUsers)
+
+	return resp, err
 }
 
 func (s *roomService) GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error) {
@@ -46,7 +50,7 @@ func (s *roomService) GetRooms(ctx context.Context, roomID uint, roomTitle strin
 	return rooms, err
 }
 
-func (s *roomService) CreateRoom(ctx context.Context, userID uint, req dto.RoomRequest) error {
+func (s *roomService) CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error) {
 	room := &model.Room{
 		UserID:        userID,
 		Title:         req.Title,
@@ -55,15 +59,16 @@ func (s *roomService) CreateRoom(ctx context.Context, userID uint, req dto.RoomR
 		ScheduledDate: req.ScheduledDate,
 	}
 
-	if err := s.repo.CreateRoom(ctx, room); err != nil {
-		return err
+	resp, err := s.repo.CreateRoom(ctx, room)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &resp, nil
 }
 
-func (s *roomService) UpdateRoom(ctx context.Context, userID, roomID uint, req dto.RoomUpdateRequest) error {
-	ogRoom, err := s.GetRoom(ctx, roomID)
+func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error {
+	ogRoom, _, err := s.repo.GetRoom(ctx, req.RoomID)
 	if err != nil {
 		return err
 	}
@@ -80,10 +85,10 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID, roomID uint, req d
 	}
 
 	if req.AddUserID != 0 {
-		room.Registered = append(ogRoom.Registered, userID)
+		room.Registered = append(ogRoom.Registered, req.AddUserID)
 	}
 
-	if err := s.repo.UpdateRoom(ctx, userID, roomID, room); err != nil {
+	if err := s.repo.UpdateRoom(ctx, userID, req.RoomID, room); err != nil {
 		return err
 	}
 

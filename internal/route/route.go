@@ -5,8 +5,8 @@ import (
 	"bookchat/internal/handler"
 	"bookchat/internal/repo"
 	"bookchat/internal/service"
+	"errors"
 	"log/slog"
-	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v5"
@@ -17,17 +17,17 @@ import (
 func LoadRoutes(e *echo.Echo, secret string, db *gorm.DB, logger *slog.Logger) {
 	api := e.Group("/api/v1")
 
-	config := echojwt.Config{
-		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
-			return new(customjwt.CustomJWTClaims)
-		},
-		SigningKey: []byte(secret),
-	}
-
 	jwtService := service.NewJWTService(secret, logger)
 
+	// unprotected endpoints
 	loadUserRoutes(api, jwtService, db, logger)
-	loadProtectedRoutes(api, config)
+
+	// load JWT configs
+	jwtConfig, optionalJWTConfig := getJWTConfigs(secret)
+
+	// protected endpoints
+	enforced, optional := getProtectedRoutes(api, jwtConfig, optionalJWTConfig)
+	loadRoomRoutes(db, logger, api, enforced, optional)
 }
 
 func loadUserRoutes(e *echo.Group, jwtService service.JWTService, db *gorm.DB, logger *slog.Logger) {
@@ -37,18 +37,58 @@ func loadUserRoutes(e *echo.Group, jwtService service.JWTService, db *gorm.DB, l
 
 	e.POST("/login", userHandler.Login)
 	e.POST("/register", userHandler.Register)
+
 }
 
-func loadProtectedRoutes(e *echo.Group, config echojwt.Config) {
+func getProtectedRoutes(e *echo.Group, config, optionalConfig echojwt.Config) (*echo.Group, *echo.Group) {
+	// JWT enforced endpoints
 	r := e.Group("")
 	r.Use(echojwt.WithConfig(config))
 
-	r.GET("/hello", func(c *echo.Context) error {
-		claims, err := customjwt.GetClaimsFromCtx(c)
-		if err != nil {
-			return err
-		}
+	// optionalJWTConfig endpoints should
+	o := e.Group("")
+	o.Use(echojwt.WithConfig(optionalConfig))
 
-		return c.JSON(http.StatusOK, map[string]string{"message": claims.Username})
-	})
+	return r, o
+}
+
+func loadRoomRoutes(db *gorm.DB, logger *slog.Logger, nonProtected, enforced, optional *echo.Group) {
+	roomRepo := repo.NewRoomRepo(db, logger)
+	roomService := service.NewRoomService(roomRepo, logger)
+	roomHandler := handler.NewRoomHander(roomService, logger)
+
+	nonProtected.GET("/rooms", roomHandler.GetRooms)
+
+	optional.GET("/rooms/:id", roomHandler.GetRoom)
+
+	enforced.POST("/rooms", roomHandler.CreateRoom)
+	enforced.PATCH("/rooms", roomHandler.UpdateRoom)
+}
+
+func getJWTConfigs(secret string) (echojwt.Config, echojwt.Config) {
+	config := echojwt.Config{
+		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
+			return new(customjwt.CustomJWTClaims)
+		},
+		SigningKey: []byte(secret),
+	}
+
+	optionalConfig := echojwt.Config{
+		NewClaimsFunc: func(c *echo.Context) jwt.Claims {
+			return new(customjwt.CustomJWTClaims)
+		},
+		SigningKey:             []byte(secret),
+		ContinueOnIgnoredError: true,
+		ErrorHandler: func(c *echo.Context, err error) error {
+			var extractionErr *echojwt.TokenExtractionError
+			if errors.As(err, &extractionErr) {
+				// No Authorization header at all -> anonymous, let it through.
+				return nil
+			}
+			// Header was present but the token itself is bad -> real 401.
+			return echojwt.ErrJWTInvalid
+		},
+	}
+
+	return config, optionalConfig
 }

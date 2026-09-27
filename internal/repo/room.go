@@ -13,9 +13,9 @@ import (
 )
 
 type RoomRepo interface {
-	GetRoom(ctx context.Context, roomID uint) (model.Room, error)
+	GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
-	CreateRoom(ctx context.Context, room *model.Room) error
+	CreateRoom(ctx context.Context, room *model.Room) (model.Room, error)
 	UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error
 }
 
@@ -31,17 +31,27 @@ func NewRoomRepo(db *gorm.DB, logger *slog.Logger) RoomRepo {
 	}
 }
 
-func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, error) {
-	room, err := gorm.G[model.Room](r.db).Where(query.Room.ID.Eq(roomID)).First(ctx)
+func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, error) {
+	room, err := gorm.G[model.Room](r.db).
+		Preload("Moderator", nil).
+		Preload("Comments", nil).
+		Where(query.Room.ID.Eq(roomID)).
+		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return room, internalerror.ErrRecordNotFound
+			return room, nil, internalerror.ErrRecordNotFound
 		}
 		r.logger.Error(err.Error())
-		return room, internalerror.ErrDatabaseErr
+		return room, nil, internalerror.ErrDatabaseErr
 	}
 
-	return room, nil
+	registeredUsers, err := gorm.G[model.User](r.db).Where(query.User.ID.In(room.Registered...)).Find(ctx)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return room, nil, internalerror.ErrDatabaseErr
+	}
+
+	return room, registeredUsers, nil
 }
 
 func (r *roomRepo) GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error) {
@@ -67,13 +77,22 @@ func (r *roomRepo) GetRooms(ctx context.Context, roomID uint, roomTitle string) 
 	return rooms, nil
 }
 
-func (r *roomRepo) CreateRoom(ctx context.Context, room *model.Room) error {
+func (r *roomRepo) CreateRoom(ctx context.Context, room *model.Room) (model.Room, error) {
 	if err := gorm.G[model.Room](r.db).Create(ctx, room); err != nil {
 		r.logger.Error(err.Error())
-		return internalerror.ErrDatabaseErr
+		return model.Room{}, internalerror.ErrDatabaseErr
 	}
 
-	return nil
+	resp, err := gorm.G[model.Room](r.db).
+		Preload("Moderator", nil).
+		Where(query.Room.ID.Eq(room.ID)).
+		First(ctx)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return model.Room{}, internalerror.ErrDatabaseErr
+	}
+
+	return resp, nil
 }
 
 func (r *roomRepo) UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error {

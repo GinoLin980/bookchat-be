@@ -37,3 +37,17 @@ func GetClaimsFromCtx(c *echo.Context) (*CustomJWTClaims, error) {
 
 	return claims, nil
 }
+
+func TryGetClaimsFromCtx(c *echo.Context) (*CustomJWTClaims, bool) {
+	token, ok := c.Get("user").(*jwt.Token)
+	if token == nil || !ok {
+		return nil, false
+	}
+
+	claims, ok := token.Claims.(*CustomJWTClaims)
+	if !ok {
+		return nil, false
+	}
+
+	return claims, true
+}
