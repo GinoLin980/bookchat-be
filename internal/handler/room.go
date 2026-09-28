@@ -90,7 +90,8 @@ func (h *roomHandler) CreateRoom(c *echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, room.ToResponse(claims.UserID, []model.User{}, []model.User{}))
+	// insert room.Moderator in the second param for unneccessary user find query
+	return c.JSON(http.StatusCreated, room.ToResponse(claims.UserID, []model.User{room.Moderator}, []model.User{}))
 }
 
 func (h *roomHandler) UpdateRoom(c *echo.Context) error {
@@ -120,12 +121,17 @@ func (h *roomHandler) ApproveUser(c *echo.Context) error {
 		return err
 	}
 
+	roomID, err := echo.PathParam[uint](c, "id")
+	if err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
 	req, err := BindAndValidate[dto.RoomApproveRequest](c)
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.ApproveRequested(c.Request().Context(), claims.UserID, req.ApproveUserID, req.RoomID); err != nil {
+	if err := h.service.ApproveRequested(c.Request().Context(), claims.UserID, req.ApproveUserID, roomID); err != nil {
 		if errors.Is(err, internalerror.ErrUserForbidden) {
 			return c.NoContent(http.StatusForbidden)
 		} else if errors.Is(err, internalerror.ErrUnprocessableEntity) {

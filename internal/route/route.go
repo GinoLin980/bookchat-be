@@ -63,6 +63,9 @@ func loadRoomRoutes(db *gorm.DB, logger *slog.Logger, nonProtected, enforced, op
 
 	enforced.POST("/rooms", roomHandler.CreateRoom)
 	enforced.PATCH("/rooms", roomHandler.UpdateRoom)
+
+	enforced.POST("/rooms/:id/apply", roomHandler.ApplyRequest)
+	enforced.POST("/rooms/:id/approve", roomHandler.ApproveUser)
 }
 
 func getJWTConfigs(secret string) (echojwt.Config, echojwt.Config) {

@@ -130,7 +130,8 @@ func (r *roomRepo) ApplyRequest(ctx context.Context, userID, roomID uint) error 
 		return internalerror.ErrDatabaseErr
 	}
 
-	if slices.Contains(room.Requested, userID) {
+	if slices.Contains(room.Requested, userID) || slices.Contains(room.Registered, userID) {
+		r.logger.Info("user already in requested||registered")
 		return nil // no-op idempotency
 	}
 	requestedUsers := append(room.Requested, userID)

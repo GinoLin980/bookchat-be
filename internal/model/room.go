@@ -49,13 +49,13 @@ func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.Roo
 	}
 
 	requestedUsers := []dto.RoomUser{}
+	for _, user := range requested {
+		requestedUsers = append(requestedUsers, user.ToRoomUserReponse())
+	}
 
 	role := "general"
 	if userID == r.UserID {
 		role = "moderator"
-		for _, user := range requested {
-			requestedUsers = append(requestedUsers, user.ToRoomUserReponse())
-		}
 	} else if slices.Contains(r.Registered, userID) {
 		role = "registered"
 	}

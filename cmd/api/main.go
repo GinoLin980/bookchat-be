@@ -50,7 +50,7 @@ func main() {
 	}
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.RemoveTrailingSlash())
+	e.Pre(middleware.RemoveTrailingSlash())
 
 	route.LoadRoutes(e, config.JWTSecret, db, logger)
 

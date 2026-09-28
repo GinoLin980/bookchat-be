@@ -21,7 +21,6 @@ type RoomUpdateRequest struct {
 }
 
 type RoomApproveRequest struct {
-	RoomID        uint `json:"room_id" validate:"required"`
 	ApproveUserID uint `json:"approve_user_id" validate:"required"`
 }
 

@@ -60,6 +60,7 @@ func (s *roomService) CreateRoom(ctx context.Context, userID uint, req *dto.Room
 		BookTitle:     req.BookTitle,
 		BookAuthor:    req.BookAuthor,
 		ScheduledDate: req.ScheduledDate,
+		Registered:    []uint{userID},
 	}
 
 	resp, err := s.repo.CreateRoom(ctx, room)
