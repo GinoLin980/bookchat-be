@@ -37,7 +37,7 @@ func (r Room) ToPreviewResponse() dto.RoomPreviewResponse {
 	}
 }
 
-func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.RoomReponse {
+func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.RoomResponse {
 	comments := []dto.CommentReponse{}
 	for _, comment := range r.Comments {
 		comments = append(comments, comment.ToResponse())
@@ -60,7 +60,7 @@ func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.Roo
 		role = "registered"
 	}
 
-	result := dto.RoomReponse{
+	result := dto.RoomResponse{
 		RoomID:     r.ID,
 		Title:      r.Title,
 		BookTitle:  r.BookTitle,

@@ -28,6 +28,18 @@ func NewUserHandler(userService service.UserService, logger *slog.Logger) UserHa
 	}
 }
 
+// Login allow user to login
+// @Summary Login via POST with JSON of username,password
+// @Tags users
+// @Accept json
+// @Produce json
+// @param body body dto.UsersRequest true "User login data"
+// @Success 200 {object} dto.UsersResponse
+// @Failure 400
+// @Failure 404
+// @Failure 401
+// @Failure 500
+// @Router /login [post]
 func (h *userHandler) Login(c *echo.Context) error {
 	req, err := BindAndValidate[dto.UsersRequest](c)
 	if err != nil {
@@ -37,17 +49,28 @@ func (h *userHandler) Login(c *echo.Context) error {
 	result, err := h.userService.Login(c.Request().Context(), req)
 	if err != nil {
 		if errors.Is(err, internalerror.ErrPasswordInvalid) {
-			return c.JSON(http.StatusUnauthorized, nil)
+			return c.NoContent(http.StatusUnauthorized)
 		}
 		if errors.Is(err, internalerror.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, nil)
+			return c.NoContent(http.StatusNotFound)
 		}
-		return c.JSON(http.StatusInternalServerError, nil)
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, result)
 }
 
+// Register allow user to register
+// @Summary Register via POST with JSON of username,password
+// @Tags users
+// @Accept json
+// @Produce json
+// @param body body dto.UsersRequest true "User register data"
+// @Success 201 {object} dto.UsersResponse
+// @Failure 400
+// @Failure 409
+// @Failure 500
+// @Router /register [post]
 func (h *userHandler) Register(c *echo.Context) error {
 	req, err := BindAndValidate[dto.UsersRequest](c)
 	if err != nil {

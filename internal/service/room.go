@@ -11,7 +11,7 @@ import (
 )
 
 type RoomService interface {
-	GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomReponse, error)
+	GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomResponse, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error)
 	UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error
@@ -31,8 +31,8 @@ func NewRoomService(repo repo.RoomRepo, logger *slog.Logger) RoomService {
 	}
 }
 
-func (s *roomService) GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomReponse, error) {
-	var resp dto.RoomReponse
+func (s *roomService) GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomResponse, error) {
+	var resp dto.RoomResponse
 
 	room, registeredUsers, requestedUsers, err := s.repo.GetRoom(ctx, roomID)
 	if err != nil {

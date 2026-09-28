@@ -34,6 +34,17 @@ func NewRoomHander(service service.RoomService, logger *slog.Logger) RoomHandler
 	}
 }
 
+// GetRoom Get the detail of a room
+// @Summary Get the detail of a room
+// @Tags rooms
+// @Produce json
+// @Security BearerAuth || {}
+// @Param id path uint true "Room ID"
+// @Success 200 {object} dto.RoomResponse
+// @Failure 400
+// @Failure 404
+// @Failure 500
+// @Router /rooms/{id} [get]
 func (h *roomHandler) GetRoom(c *echo.Context) error {
 	roomID, err := echo.PathParam[uint](c, "id")
 	if err != nil {
@@ -57,8 +68,17 @@ func (h *roomHandler) GetRoom(c *echo.Context) error {
 	return c.JSON(http.StatusOK, room)
 }
 
+// GetRooms Get the preview of rooms or find room via room ID or keyword in title
+// @Summary Get the preview of rooms or find room via room ID or keyword in title
+// @Tags rooms
+// @Param id query uint false "Room ID"
+// @Param title query string false "Room title"
+// @Produce json
+// @Success 200 {object} []dto.RoomPreviewResponse
+// @Failure 500
+// @Router /rooms [get]
 func (h *roomHandler) GetRooms(c *echo.Context) error {
-	roomID, err := echo.PathParam[uint](c, "id")
+	roomID, err := echo.QueryParam[uint](c, "id")
 	roomTitle := c.QueryParam("title")
 
 	rooms, err := h.service.GetRooms(c.Request().Context(), roomID, roomTitle)
@@ -74,6 +94,16 @@ func (h *roomHandler) GetRooms(c *echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// CreateRoom Create a room
+// @Summary Create a room
+// @Tags rooms
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body dto.RoomRequest true "Create room request"
+// @Success 201 {object} dto.RoomResponse
+// @Failure 500
+// @Router /rooms [post]
 func (h *roomHandler) CreateRoom(c *echo.Context) error {
 	claims, err := customjwt.GetClaimsFromCtx(c)
 	if err != nil {
@@ -94,6 +124,18 @@ func (h *roomHandler) CreateRoom(c *echo.Context) error {
 	return c.JSON(http.StatusCreated, room.ToResponse(claims.UserID, []model.User{room.Moderator}, []model.User{}))
 }
 
+// UpdateRoom Update the room's information or manual adding reqeust users, only moderator is allowed to this
+// @Summary Update the room's information or manual adding reqeust users, only moderator is allowed to this
+// @Tags rooms
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path uint true "Room ID"
+// @Param body body dto.RoomUpdateRequest true "Update room request"
+// @Success 204
+// @Failure 403 {object} map[string]string
+// @Failure 500
+// @Router /rooms/{id} [patch]
 func (h *roomHandler) UpdateRoom(c *echo.Context) error {
 	claims, err := customjwt.GetClaimsFromCtx(c)
 	if err != nil {
@@ -115,6 +157,18 @@ func (h *roomHandler) UpdateRoom(c *echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// ApproveUser Move a user from requested list to registered, if user is not in requested then return 422, only moderator is allowed to this
+// @Summary Move a user from requested list to registered, if user is not in requested then return 422, only moderator is allowed to this
+// @Tags rooms
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path uint true "Room ID"
+// @Param body body dto.RoomApproveRequest true "Room approval request"
+// @Success 204
+// @Failure 422 {object} map[string]string
+// @Failure 500
+// @Router /rooms/{id}/approve [post]
 func (h *roomHandler) ApproveUser(c *echo.Context) error {
 	claims, err := customjwt.GetClaimsFromCtx(c)
 	if err != nil {
@@ -135,7 +189,7 @@ func (h *roomHandler) ApproveUser(c *echo.Context) error {
 		if errors.Is(err, internalerror.ErrUserForbidden) {
 			return c.NoContent(http.StatusForbidden)
 		} else if errors.Is(err, internalerror.ErrUnprocessableEntity) {
-			return c.JSON(http.StatusUnprocessableEntity, "user not in request list, ask user to request the room first")
+			return c.JSON(http.StatusUnprocessableEntity, map[string]string{"message": "user not in request list, ask user to request the room first"})
 		}
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -143,6 +197,16 @@ func (h *roomHandler) ApproveUser(c *echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+// ApplyRequest Apply for a room's registry, if already applied, still return 200
+// @Summary Apply for a room's registry, if already applied, still return 200
+// @Tags rooms
+// @Produce json
+// @Param id path uint true "Room ID"
+// @Security BearerAuth
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /rooms/{id}/apply [post]
 func (h *roomHandler) ApplyRequest(c *echo.Context) error {
 	claims, err := customjwt.GetClaimsFromCtx(c)
 	if err != nil {

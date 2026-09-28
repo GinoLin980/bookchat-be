@@ -1,0 +1,365 @@
+basePath: /api/v1
+definitions:
+  dto.CommentReponse:
+    properties:
+      content:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  dto.RoomApproveRequest:
+    properties:
+      approve_user_id:
+        type: integer
+    required:
+    - approve_user_id
+    type: object
+  dto.RoomPreviewResponse:
+    properties:
+      book_author:
+        type: string
+      book_title:
+        type: string
+      moderator:
+        $ref: '#/definitions/dto.RoomUser'
+      room_id:
+        type: integer
+      scheduled_date:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.RoomRequest:
+    properties:
+      book_author:
+        type: string
+      book_title:
+        type: string
+      scheduled_date:
+        type: string
+      title:
+        type: string
+    required:
+    - book_author
+    - book_title
+    - scheduled_date
+    - title
+    type: object
+  dto.RoomResponse:
+    properties:
+      assigned_to_comment:
+        type: integer
+      book_author:
+        type: string
+      book_title:
+        type: string
+      comments:
+        items:
+          $ref: '#/definitions/dto.CommentReponse'
+        type: array
+      created_at:
+        type: string
+      moderator:
+        $ref: '#/definitions/dto.RoomUser'
+      registered:
+        items:
+          $ref: '#/definitions/dto.RoomUser'
+        type: array
+      requested:
+        items:
+          $ref: '#/definitions/dto.RoomUser'
+        type: array
+      role:
+        type: string
+      room_id:
+        type: integer
+      scheduled_date:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.RoomUpdateRequest:
+    properties:
+      add_user_id:
+        type: integer
+      approve_user_id:
+        type: integer
+      assigned_to_comment:
+        type: integer
+      book_author:
+        type: string
+      book_title:
+        type: string
+      room_id:
+        type: integer
+      scheduled_date:
+        type: string
+      title:
+        type: string
+    required:
+    - room_id
+    type: object
+  dto.RoomUser:
+    properties:
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  dto.UsersRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  dto.UsersResponse:
+    properties:
+      status:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+host: bookchat.gcp.ginol.in
+info:
+  contact: {}
+  title: BookChat Backend API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User login data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UsersResponse'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Login via POST with JSON of username,password
+      tags:
+      - users
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User register data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UsersRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UsersResponse'
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      summary: Register via POST with JSON of username,password
+      tags:
+      - users
+  /rooms:
+    get:
+      parameters:
+      - description: Room ID
+        in: query
+        name: id
+        type: integer
+      - description: Room title
+        in: query
+        name: title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.RoomPreviewResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: Get the preview of rooms or find room via room ID or keyword in title
+      tags:
+      - rooms
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Create room request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.RoomResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Create a room
+      tags:
+      - rooms
+  /rooms/{id}:
+    get:
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RoomResponse'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - '{}': []
+        BearerAuth: []
+      summary: Get the detail of a room
+      tags:
+      - rooms
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update room request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoomUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Update the room's information or manual adding reqeust users, only
+        moderator is allowed to this
+      tags:
+      - rooms
+  /rooms/{id}/apply:
+    post:
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Apply for a room's registry, if already applied, still return 200
+      tags:
+      - rooms
+  /rooms/{id}/approve:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Room approval request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoomApproveRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Move a user from requested list to registered, if user is not in requested
+        then return 422, only moderator is allowed to this
+      tags:
+      - rooms
+securityDefinitions:
+  BearerAuth:
+    description: '"Bearer {JWT}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

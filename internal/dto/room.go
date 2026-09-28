@@ -33,7 +33,7 @@ type RoomPreviewResponse struct {
 	ScheduledDate time.Time `json:"scheduled_date"`
 }
 
-type RoomReponse struct {
+type RoomResponse struct {
 	RoomID     uint       `json:"room_id"`
 	Title      string     `json:"title"`
 	BookTitle  string     `json:"book_title"`

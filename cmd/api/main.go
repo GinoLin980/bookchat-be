@@ -11,12 +11,22 @@ import (
 	"net/http"
 	"os"
 
+	_ "bookchat/docs"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
+// @title BookChat Backend API
+// @version 1.0
+// @host bookchat.gcp.ginol.in
+// @Basepath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                "Bearer {JWT}"
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -57,6 +67,8 @@ func main() {
 	e.GET("/", func(c *echo.Context) error {
 		return c.JSON(200, map[string]string{"hello": "world"})
 	})
+
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	if err := e.Start(":8080"); err != nil {
 		e.Logger.Error("port might be used, can't start server")
