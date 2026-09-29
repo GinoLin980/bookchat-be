@@ -63,6 +63,12 @@ func main() {
 		}
 		echo.DefaultHTTPErrorHandler(true)(c, err)
 	}
+	e.Pre(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderContentType, echo.HeaderAuthorization},
+		MaxAge:       3600,
+	}))
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Pre(middleware.RemoveTrailingSlash())
