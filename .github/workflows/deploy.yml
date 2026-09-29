@@ -1,0 +1,62 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: us-central1
+  SERVICE: bookchat-be
+  IMAGE: us-central1-docker.pkg.dev/${{ vars.PROJECT_ID }}/bookchat-repo/bookchat-be
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - run: go vet ./...
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud auth configure-docker us-central1-docker.pkg.dev -q
+
+      - run: |
+          docker build -t $IMAGE:${{ github.sha }} .
+          docker push $IMAGE:${{ github.sha }}
+
+      - uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          flags: >-
+            --service-account=bookchat-runtime@bookchat-be.iam.gserviceaccount.com
+            --min-instances=0
+            --max-instances=1
+            --concurrency=80
+            --cpu=1
+            --memory=512Mi
+            --allow-unauthenticated
+          env_vars: |
+            APP_ENV=production
+          secrets: |
+            PG_HOST=PG_HOST:latest
+            PG_PORT=PG_PORT:latest
+            PG_USER=PG_USER:latest
+            PG_PSWD=PG_PSWD:latest
+            PG_DB=PG_DB:latest
+            JWT_SECRET=JWT_SECRET:latest

@@ -4,14 +4,18 @@ import (
 	"bookchat/internal/config"
 	customvalidator "bookchat/internal/custom_validator"
 	"bookchat/internal/database"
-	"bookchat/internal/model"
 	"bookchat/internal/route"
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "bookchat/docs"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -28,17 +32,18 @@ import (
 // @name                       Authorization
 // @description                "Bearer {JWT}"
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	if err := godotenv.Load(); err != nil {
-		logger.Error("failed to load .env")
-		os.Exit(1)
+		logger.Warn("failed to load .env")
 	}
 
 	config := config.GetConfig(logger)
 
 	db := database.ConnectDB(config, logger)
-	db.AutoMigrate(&model.User{}, &model.Room{}, &model.Comment{})
+	// db.AutoMigrate(&model.User{}, &model.Room{}, &model.Comment{})
 
 	e := echo.New()
 
@@ -61,6 +66,8 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Pre(middleware.RemoveTrailingSlash())
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
+	e.Use(middleware.BodyLimit(1 << 20))
 
 	route.LoadRoutes(e, config.JWTSecret, db, logger)
 
@@ -70,7 +77,23 @@ func main() {
 
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	if err := e.Start(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	sc := echo.StartConfig{
+		Address:         ":" + port,
+		HideBanner:      true,
+		GracefulTimeout: 8 * time.Second,
+		BeforeServeFunc: func(s *http.Server) error {
+			s.ReadHeaderTimeout = 5 * time.Second
+			s.IdleTimeout = 60 * time.Second
+			return nil
+		},
+	}
+
+	if err := sc.Start(ctx, e); err != nil {
 		e.Logger.Error("port might be used, can't start server")
 	}
 }
