@@ -14,7 +14,7 @@ type RoomService interface {
 	GetRoom(ctx context.Context, userID, roomID uint) (dto.RoomResponse, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error)
-	UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error
+	UpdateRoom(ctx context.Context, userID, roomID uint, req *dto.RoomUpdateRequest) error
 	ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error
 	ApplyRequested(ctx context.Context, userID, roomID uint) error
 }
@@ -71,8 +71,8 @@ func (s *roomService) CreateRoom(ctx context.Context, userID uint, req *dto.Room
 	return &resp, nil
 }
 
-func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.RoomUpdateRequest) error {
-	ogRoom, _, _, err := s.repo.GetRoom(ctx, req.RoomID)
+func (s *roomService) UpdateRoom(ctx context.Context, userID, roomID uint, req *dto.RoomUpdateRequest) error {
+	ogRoom, _, _, err := s.repo.GetRoom(ctx, roomID)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,8 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.Room
 		Title:             req.Title,
 		BookTitle:         req.BookTitle,
 		BookAuthor:        req.BookAuthor,
-		AssignedToComment: ogRoom.AssignedToComment,
+		AssignedToComment: req.AssignedToComment,
+		ScheduledDate:     req.ScheduledDate,
 	}
 
 	// approve user into registered
@@ -98,7 +99,7 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.Room
 		room.Requested = slices.Delete(ogRoom.Requested, idx, idx+1)
 	}
 
-	if err := s.repo.UpdateRoom(ctx, userID, req.RoomID, room); err != nil {
+	if err := s.repo.UpdateRoom(ctx, userID, roomID, room); err != nil {
 		return err
 	}
 
@@ -106,7 +107,7 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID uint, req *dto.Room
 }
 
 func (s *roomService) ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error {
-	if err := s.UpdateRoom(ctx, userID, &dto.RoomUpdateRequest{RoomID: roomID, ApproveUserID: requestUserID}); err != nil {
+	if err := s.UpdateRoom(ctx, userID, roomID, &dto.RoomUpdateRequest{ApproveUserID: requestUserID}); err != nil {
 		return err
 	}
 

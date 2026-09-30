@@ -15,6 +15,7 @@ import (
 
 type RoomRepo interface {
 	GetRoom(ctx context.Context, roomID uint) (model.Room, []model.User, []model.User, error)
+	GetRoomWithoutUserInfo(ctx context.Context, roomID uint) (model.Room, error)
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, room *model.Room) (model.Room, error)
 	UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error
@@ -60,6 +61,18 @@ func (r *roomRepo) GetRoom(ctx context.Context, roomID uint) (model.Room, []mode
 	}
 
 	return room, registeredUsers, requestedUsers, nil
+}
+
+func (r *roomRepo) GetRoomWithoutUserInfo(ctx context.Context, roomID uint) (model.Room, error) {
+	room, err := gorm.G[model.Room](r.db).Where(query.Room.ID.Eq(roomID)).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return room, internalerror.ErrRecordNotFound
+		}
+		r.logger.Error(err.Error())
+		return room, internalerror.ErrDatabaseErr
+	}
+	return room, nil
 }
 
 func (r *roomRepo) GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error) {

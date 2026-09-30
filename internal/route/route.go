@@ -28,6 +28,8 @@ func LoadRoutes(e *echo.Echo, secret string, db *gorm.DB, logger *slog.Logger) {
 	// protected endpoints
 	enforced, optional := getProtectedRoutes(api, jwtConfig, optionalJWTConfig)
 	loadRoomRoutes(db, logger, api, enforced, optional)
+
+	loadCommentRoutes(db, logger, enforced)
 }
 
 func loadUserRoutes(e *echo.Group, jwtService service.JWTService, db *gorm.DB, logger *slog.Logger) {
@@ -62,10 +64,20 @@ func loadRoomRoutes(db *gorm.DB, logger *slog.Logger, nonProtected, enforced, op
 	optional.GET("/rooms/:id", roomHandler.GetRoom)
 
 	enforced.POST("/rooms", roomHandler.CreateRoom)
-	enforced.PATCH("/rooms", roomHandler.UpdateRoom)
+	enforced.PATCH("/rooms/:id", roomHandler.UpdateRoom)
 
 	enforced.POST("/rooms/:id/apply", roomHandler.ApplyRequest)
 	enforced.POST("/rooms/:id/approve", roomHandler.ApproveUser)
+}
+
+func loadCommentRoutes(db *gorm.DB, logger *slog.Logger, config *echo.Group) {
+	commentRepo := repo.NewCommentRepo(db, logger)
+	roomRepo := repo.NewRoomRepo(db, logger)
+	commentService := service.NewCommentService(commentRepo, roomRepo, logger)
+	commentHandler := handler.NewCommentHandler(commentService, logger)
+
+	config.GET("/rooms/:id/comments", commentHandler.GetComments)
+	config.POST("/rooms/:id/comments", commentHandler.CreateComment)
 }
 
 func getJWTConfigs(secret string) (echojwt.Config, echojwt.Config) {

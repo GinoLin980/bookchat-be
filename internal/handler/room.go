@@ -142,14 +142,19 @@ func (h *roomHandler) UpdateRoom(c *echo.Context) error {
 		return err
 	}
 
+	roomID, err := echo.PathParam[uint](c, "id")
+	if err != nil {
+		return err
+	}
+
 	req, err := BindAndValidate[dto.RoomUpdateRequest](c)
 	if err != nil {
 		return err
 	}
 
-	if err := h.service.UpdateRoom(c.Request().Context(), claims.UserID, req); err != nil {
+	if err := h.service.UpdateRoom(c.Request().Context(), claims.UserID, roomID, req); err != nil {
 		if errors.Is(err, internalerror.ErrUserForbidden) {
-			c.JSON(http.StatusForbidden, map[string]string{"message": "you're not moderator"})
+			return c.JSON(http.StatusForbidden, map[string]string{"message": "you're not moderator"})
 		}
 		return c.NoContent(http.StatusInternalServerError)
 	}

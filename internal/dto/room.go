@@ -10,7 +10,6 @@ type RoomRequest struct {
 }
 
 type RoomUpdateRequest struct {
-	RoomID            uint      `json:"room_id" validate:"required"`
 	Title             string    `json:"title"`
 	BookTitle         string    `json:"book_title"`
 	BookAuthor        string    `json:"book_author"`
@@ -34,7 +33,7 @@ type RoomPreviewResponse struct {
 }
 
 type RoomResponse struct {
-	RoomID     uint       `json:"room_id"`
+	RoomID     uint       `json:"room_id" validate:"required"`
 	Title      string     `json:"title"`
 	BookTitle  string     `json:"book_title"`
 	BookAuthor string     `json:"book_author"`
