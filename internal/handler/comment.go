@@ -59,15 +59,23 @@ func (h *commentHandler) GetComments(c *echo.Context) error {
 
 }
 
-// GetComments Get the comments
-// @Summary Get the comments
+// CreateComment Create a comment
+// @Summary Create a comment
+// @Description Moderator (room owner) bypasses all checks.
+// @Description Other users get 403 when:
+// @Description - it's not your turn
+// @Description - you're not registered (not approved by moderator)
+// @Description - the discussion is not started yet
+// @Description - the discussion has ended
 // @Tags comments
+// @Accept json
 // @Param id path uint true "Room ID"
+// @Param body body dto.CommentRequest true "Comment"
 // @Produce json
 // @Success 201
 // @Failure 400
 // @Failure 401
-// @Failure 403 {string} string "user is not allowed to comment at this point"
+// @Failure 403 {string} string "forbidden: not your turn / not registered / discussion not started yet / discussion has ended"
 // @Failure 500
 // @Router /rooms/{id}/comments [post]
 func (h *commentHandler) CreateComment(c *echo.Context) error {

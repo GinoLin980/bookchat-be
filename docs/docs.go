@@ -364,6 +364,94 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/rooms/{id}/comments": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Get the comments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Room ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CommentReponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "post": {
+                "description": "Moderator (room owner) bypasses all checks.\nOther users get 403 when:\n- it's not your turn\n- you're not registered (not approved by moderator)\n- the discussion is not started yet\n- the discussion has ended",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comments"
+                ],
+                "summary": "Create a comment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Room ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "forbidden: not your turn / not registered / discussion not started yet / discussion has ended",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -377,6 +465,17 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
                     "type": "string"
                 }
             }
@@ -410,6 +509,9 @@ const docTemplate = `{
                 "scheduled_date": {
                     "type": "string"
                 },
+                "state": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 }
@@ -440,6 +542,9 @@ const docTemplate = `{
         },
         "dto.RoomResponse": {
             "type": "object",
+            "required": [
+                "room_id"
+            ],
             "properties": {
                 "assigned_to_comment": {
                     "type": "integer"
@@ -483,6 +588,9 @@ const docTemplate = `{
                 "scheduled_date": {
                     "type": "string"
                 },
+                "state": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 }
@@ -490,9 +598,6 @@ const docTemplate = `{
         },
         "dto.RoomUpdateRequest": {
             "type": "object",
-            "required": [
-                "room_id"
-            ],
             "properties": {
                 "add_user_id": {
                     "type": "integer"
@@ -509,11 +614,15 @@ const docTemplate = `{
                 "book_title": {
                     "type": "string"
                 },
-                "room_id": {
-                    "type": "integer"
-                },
                 "scheduled_date": {
                     "type": "string"
+                },
+                "state": {
+                    "type": "string",
+                    "enum": [
+                        "started",
+                        "ended"
+                    ]
                 },
                 "title": {
                     "type": "string"

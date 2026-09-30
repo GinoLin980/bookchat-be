@@ -9,6 +9,13 @@ definitions:
       username:
         type: string
     type: object
+  dto.CommentRequest:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
   dto.RoomApproveRequest:
     properties:
       approve_user_id:
@@ -27,6 +34,8 @@ definitions:
       room_id:
         type: integer
       scheduled_date:
+        type: string
+      state:
         type: string
       title:
         type: string
@@ -77,8 +86,12 @@ definitions:
         type: integer
       scheduled_date:
         type: string
+      state:
+        type: string
       title:
         type: string
+    required:
+    - room_id
     type: object
   dto.RoomUpdateRequest:
     properties:
@@ -92,14 +105,15 @@ definitions:
         type: string
       book_title:
         type: string
-      room_id:
-        type: integer
       scheduled_date:
+        type: string
+      state:
+        enum:
+        - started
+        - ended
         type: string
       title:
         type: string
-    required:
-    - room_id
     type: object
   dto.RoomUser:
     properties:
@@ -356,6 +370,71 @@ paths:
         then return 422, only moderator is allowed to this
       tags:
       - rooms
+  /rooms/{id}/comments:
+    get:
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CommentReponse'
+            type: array
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Get the comments
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Moderator (room owner) bypasses all checks.
+        Other users get 403 when:
+        - it's not your turn
+        - you're not registered (not approved by moderator)
+        - the discussion is not started yet
+        - the discussion has ended
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: 'forbidden: not your turn / not registered / discussion not
+            started yet / discussion has ended'
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+      summary: Create a comment
+      tags:
+      - comments
 securityDefinitions:
   BearerAuth:
     description: '"Bearer {JWT}"'
