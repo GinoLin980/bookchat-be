@@ -87,6 +87,7 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID, roomID uint, req *
 		BookAuthor:        req.BookAuthor,
 		AssignedToComment: req.AssignedToComment,
 		ScheduledDate:     req.ScheduledDate,
+		State:             req.State,
 	}
 
 	// approve user into registered

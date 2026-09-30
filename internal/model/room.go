@@ -34,6 +34,7 @@ func (r Room) ToPreviewResponse() dto.RoomPreviewResponse {
 		BookAuthor:    r.BookAuthor,
 		Moderator:     r.Moderator.ToRoomUserReponse(),
 		ScheduledDate: r.ScheduledDate,
+		State:         r.State,
 	}
 }
 
@@ -71,6 +72,7 @@ func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.Roo
 		Requested:         requestedUsers,
 		AssignedToComment: r.AssignedToComment,
 		CreatedAt:         r.CreatedAt,
+		State:             r.State,
 
 		ScheduledDate: r.ScheduledDate,
 		Comments:      comments,
