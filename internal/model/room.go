@@ -61,15 +61,16 @@ func (r Room) ToResponse(userID uint, registeredUsers, requested []User) dto.Roo
 	}
 
 	result := dto.RoomResponse{
-		RoomID:     r.ID,
-		Title:      r.Title,
-		BookTitle:  r.BookTitle,
-		BookAuthor: r.BookAuthor,
-		Moderator:  r.Moderator.ToRoomUserReponse(),
-		Role:       role,
-		Registered: roomRegisteredUsers,
-		Requested:  requestedUsers,
-		CreatedAt:  r.CreatedAt,
+		RoomID:            r.ID,
+		Title:             r.Title,
+		BookTitle:         r.BookTitle,
+		BookAuthor:        r.BookAuthor,
+		Moderator:         r.Moderator.ToRoomUserReponse(),
+		Role:              role,
+		Registered:        roomRegisteredUsers,
+		Requested:         requestedUsers,
+		AssignedToComment: r.AssignedToComment,
+		CreatedAt:         r.CreatedAt,
 
 		ScheduledDate: r.ScheduledDate,
 		Comments:      comments,
