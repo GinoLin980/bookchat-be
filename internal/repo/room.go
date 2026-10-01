@@ -19,6 +19,7 @@ type RoomRepo interface {
 	GetRooms(ctx context.Context, roomID uint, roomTitle string) ([]model.Room, error)
 	CreateRoom(ctx context.Context, room *model.Room) (model.Room, error)
 	UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error
+	PassTurn(ctx context.Context, userID, roomID uint) error
 	ApplyRequest(ctx context.Context, userID, roomID uint) error
 }
 
@@ -116,6 +117,7 @@ func (r *roomRepo) CreateRoom(ctx context.Context, room *model.Room) (model.Room
 	return resp, nil
 }
 
+// UpdateRoom for moderator usage or user request only
 func (r *roomRepo) UpdateRoom(ctx context.Context, userID, roomID uint, room model.Room) error {
 	rowsAffected, err := gorm.G[model.Room](r.db).
 		Where(query.Room.ID.Eq(roomID)).
@@ -128,6 +130,24 @@ func (r *roomRepo) UpdateRoom(ctx context.Context, userID, roomID uint, room mod
 	}
 	if rowsAffected == 0 {
 		return internalerror.ErrUserForbidden
+	}
+
+	return nil
+}
+
+// for current assigned user to pass turn
+func (r *roomRepo) PassTurn(ctx context.Context, userID, roomID uint) error {
+	rowsAffected, err := gorm.G[model.Room](r.db).
+		Where(query.Room.ID.Eq(roomID)).
+		Where(query.Room.AssignedToComment.Eq(userID)).
+		Update(ctx, "AssignedToComment", 0)
+
+	if err != nil {
+		return internalerror.ErrDatabaseErr
+	}
+
+	if rowsAffected == 0 {
+		return internalerror.ErrRecordNotFound
 	}
 
 	return nil

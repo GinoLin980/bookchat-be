@@ -326,6 +326,8 @@ paths:
       responses:
         "200":
           description: OK
+        "401":
+          description: Unauthorized
         "404":
           description: Not Found
         "500":
@@ -435,6 +437,57 @@ paths:
       summary: Create a comment
       tags:
       - comments
+  /rooms/{id}/deny:
+    post:
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Deny a user's request to join room, only available for moderator
+      tags:
+      - rooms
+  /rooms/{id}/pass:
+    post:
+      parameters:
+      - description: Room ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Pass the current user's turn if it's current assigned, if not, return
+        404, or it might be the room not found
+      tags:
+      - rooms
 securityDefinitions:
   BearerAuth:
     description: '"Bearer {JWT}"'

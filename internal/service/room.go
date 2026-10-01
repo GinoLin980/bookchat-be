@@ -6,6 +6,7 @@ import (
 	"bookchat/internal/model"
 	"bookchat/internal/repo"
 	"context"
+	"fmt"
 	"log/slog"
 	"slices"
 )
@@ -16,6 +17,8 @@ type RoomService interface {
 	CreateRoom(ctx context.Context, userID uint, req *dto.RoomRequest) (*model.Room, error)
 	UpdateRoom(ctx context.Context, userID, roomID uint, req *dto.RoomUpdateRequest) error
 	ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error
+	DenyRequest(ctx context.Context, userID, requestUserID, roomID uint) error
+	PassTurn(ctx context.Context, userID, roomID uint) error
 	ApplyRequested(ctx context.Context, userID, roomID uint) error
 }
 
@@ -109,6 +112,38 @@ func (s *roomService) UpdateRoom(ctx context.Context, userID, roomID uint, req *
 
 func (s *roomService) ApproveRequested(ctx context.Context, userID, requestUserID, roomID uint) error {
 	if err := s.UpdateRoom(ctx, userID, roomID, &dto.RoomUpdateRequest{ApproveUserID: requestUserID}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *roomService) DenyRequest(ctx context.Context, userID, requestUserID, roomID uint) error {
+	room, err := s.repo.GetRoomWithoutUserInfo(ctx, roomID)
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains(room.Registered, userID) {
+		return fmt.Errorf("the user is not in the requested list %w", internalerror.ErrUserForbidden)
+	}
+
+	idx := slices.Index(room.Requested, requestUserID)
+	if idx == -1 {
+		return fmt.Errorf("the user is not in the requested list %w", internalerror.ErrUserForbidden)
+	}
+
+	requested := slices.Delete(room.Requested, idx, idx+1)
+
+	if err := s.repo.UpdateRoom(ctx, userID, roomID, model.Room{Requested: requested}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *roomService) PassTurn(ctx context.Context, userID, roomID uint) error {
+	if err := s.repo.PassTurn(ctx, userID, roomID); err != nil {
 		return err
 	}
 

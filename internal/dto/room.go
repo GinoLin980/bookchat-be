@@ -20,6 +20,10 @@ type RoomUpdateRequest struct {
 	State             string    `json:"state" validate:"oneof=started ended"`
 }
 
+type RoomDenyRequest struct {
+	DenyUserID uint `json:"deny_user_id" validate:"required"`
+}
+
 type RoomApproveRequest struct {
 	ApproveUserID uint `json:"approve_user_id" validate:"required"`
 }

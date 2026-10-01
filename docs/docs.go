@@ -302,6 +302,9 @@ const docTemplate = `{
                     "200": {
                         "description": "OK"
                     },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
                     "404": {
                         "description": "Not Found"
                     },
@@ -446,6 +449,87 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/rooms/{id}/deny": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rooms"
+                ],
+                "summary": "Deny a user's request to join room, only available for moderator",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Room ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/rooms/{id}/pass": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "rooms"
+                ],
+                "summary": "Pass the current user's turn if it's current assigned, if not, return 404, or it might be the room not found",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Room ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
                     },
                     "500": {
                         "description": "Internal Server Error"

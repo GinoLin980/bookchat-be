@@ -19,6 +19,8 @@ type RoomHandler interface {
 	CreateRoom(c *echo.Context) error
 	UpdateRoom(c *echo.Context) error
 	ApproveUser(c *echo.Context) error
+	DenyRequest(c *echo.Context) error
+	PassTurn(c *echo.Context) error
 	ApplyRequest(c *echo.Context) error
 }
 
@@ -202,6 +204,79 @@ func (h *roomHandler) ApproveUser(c *echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+// DenyRequest Deny a user's request to join room, only available for moderator
+// @Summary Deny a user's request to join room, only available for moderator
+// @Tags rooms
+// @Produce json
+// @Param id path uint true "Room ID"
+// @Security BearerAuth
+// @Success 204
+// @Failure 400
+// @Failure 401
+// @Failure 403
+// @Failure 500
+// @Router /rooms/{id}/deny [post]
+func (h *roomHandler) DenyRequest(c *echo.Context) error {
+	claims, err := customjwt.GetClaimsFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	roomID, err := echo.PathParam[uint](c, "id")
+	if err != nil {
+		return err
+	}
+
+	req, err := BindAndValidate[dto.RoomDenyRequest](c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.DenyRequest(c.Request().Context(), claims.UserID, req.DenyUserID, roomID); err != nil {
+		if errors.Is(err, internalerror.ErrUserForbidden) {
+			return c.JSON(http.StatusForbidden, err)
+		}
+		if errors.Is(err, internalerror.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		}
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// PassTurn Pass the current user's turn if it's current assigned, if not, return 404, or it might be the room not found
+// @Summary  Pass the current user's turn if it's current assigned, if not, return 404, or it might be the room not found
+// @Tags rooms
+// @Param id path uint true "Room ID"
+// @Security BearerAuth
+// @Success 204
+// @Failure 401
+// @Failure 403
+// @Failure 404
+// @Failure 500
+// @Router /rooms/{id}/pass [post]
+func (h *roomHandler) PassTurn(c *echo.Context) error {
+	claims, err := customjwt.GetClaimsFromCtx(c)
+	if err != nil {
+		return err
+	}
+
+	roomID, err := echo.PathParam[uint](c, "id")
+	if err != nil {
+		return err
+	}
+
+	if err := h.service.PassTurn(c.Request().Context(), claims.UserID, roomID); err != nil {
+		if errors.Is(err, internalerror.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		}
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
 // ApplyRequest Apply for a room's registry, if already applied, still return 200
 // @Summary Apply for a room's registry, if already applied, still return 200
 // @Tags rooms
@@ -209,6 +284,7 @@ func (h *roomHandler) ApproveUser(c *echo.Context) error {
 // @Param id path uint true "Room ID"
 // @Security BearerAuth
 // @Success 200
+// @Failure 401
 // @Failure 404
 // @Failure 500
 // @Router /rooms/{id}/apply [post]

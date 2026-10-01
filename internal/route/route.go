@@ -68,6 +68,9 @@ func loadRoomRoutes(db *gorm.DB, logger *slog.Logger, nonProtected, enforced, op
 
 	enforced.POST("/rooms/:id/apply", roomHandler.ApplyRequest)
 	enforced.POST("/rooms/:id/approve", roomHandler.ApproveUser)
+
+	enforced.POST("/rooms/:id/deny", roomHandler.DenyRequest)
+	enforced.POST("/rooms/:id/pass", roomHandler.PassTurn)
 }
 
 func loadCommentRoutes(db *gorm.DB, logger *slog.Logger, config *echo.Group) {
