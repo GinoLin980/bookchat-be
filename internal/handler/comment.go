@@ -33,6 +33,7 @@ func NewCommentHandler(service service.CommentService, logger *slog.Logger) Comm
 // GetComments Get the comments
 // @Summary Get the comments
 // @Tags comments
+// @Security BearerAuth
 // @Param id path uint true "Room ID"
 // @Produce json
 // @Success 200 {object} []dto.CommentReponse
@@ -61,6 +62,7 @@ func (h *commentHandler) GetComments(c *echo.Context) error {
 
 // CreateComment Create a comment
 // @Summary Create a comment
+// @Security BearerAuth
 // @Description Moderator (room owner) bypasses all checks.
 // @Description Other users get 403 when:
 // @Description - it's not your turn
