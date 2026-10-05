@@ -17,7 +17,7 @@ type RoomUpdateRequest struct {
 	AddUserID         uint      `json:"add_user_id"`
 	ApproveUserID     uint      `json:"approve_user_id"`
 	AssignedToComment uint      `json:"assigned_to_comment"`
-	State             string    `json:"state" validate:"oneof=started ended"`
+	State             string    `json:"state" validate:"omitempty,oneof=started ended"`
 }
 
 type RoomDenyRequest struct {
