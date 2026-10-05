@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+// custom generic helper
 func BindAndValidate[T any](c *echo.Context) (*T, error) {
 	req := new(T)
 	if err := c.Bind(req); err != nil {

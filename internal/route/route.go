@@ -28,7 +28,7 @@ func LoadRoutes(e *echo.Echo, secret string, db *gorm.DB, logger *slog.Logger) {
 	jwtConfig, optionalJWTConfig := getJWTConfigs(secret)
 
 	// protected endpoints
-	enforced, optional := getProtectedRoutes(api, jwtConfig, optionalJWTConfig)
+	enforced, optional := getProtectedConfigs(api, jwtConfig, optionalJWTConfig)
 	loadRoomRoutes(db, logger, api, enforced, optional)
 
 	loadCommentRoutes(db, logger, enforced)
@@ -44,7 +44,7 @@ func loadUserRoutes(e *echo.Group, jwtService service.JWTService, db *gorm.DB, l
 
 }
 
-func getProtectedRoutes(e *echo.Group, config, optionalConfig echojwt.Config) (*echo.Group, *echo.Group) {
+func getProtectedConfigs(e *echo.Group, config, optionalConfig echojwt.Config) (*echo.Group, *echo.Group) {
 	// JWT enforced endpoints
 	r := e.Group("")
 	r.Use(echojwt.WithConfig(config))
@@ -57,10 +57,12 @@ func getProtectedRoutes(e *echo.Group, config, optionalConfig echojwt.Config) (*
 }
 
 func loadRoomRoutes(db *gorm.DB, logger *slog.Logger, nonProtected, enforced, optional *echo.Group) {
+	// deps
 	roomRepo := repo.NewRoomRepo(db, logger)
 	roomService := service.NewRoomService(roomRepo, logger)
 	roomHandler := handler.NewRoomHander(roomService, logger)
 
+	// could use a "/rooms" e.Group
 	nonProtected.GET("/rooms", roomHandler.GetRooms)
 
 	optional.GET("/rooms/:id", roomHandler.GetRoom)
@@ -99,6 +101,7 @@ func getJWTConfigs(secret string) (echojwt.Config, echojwt.Config) {
 		},
 		SigningKey:             []byte(secret),
 		ContinueOnIgnoredError: true,
+		// return the 401 if unavailable to extract JWT from header
 		ErrorHandler: func(c *echo.Context, err error) error {
 			var extractionErr *echojwt.TokenExtractionError
 			if errors.As(err, &extractionErr) {
