@@ -15,8 +15,10 @@ import (
 )
 
 func LoadRoutes(e *echo.Echo, secret string, db *gorm.DB, logger *slog.Logger) {
+	// base endpoint
 	api := e.Group("/api/v1")
 
+	// jwt dep
 	jwtService := service.NewJWTService(secret, logger)
 
 	// unprotected endpoints

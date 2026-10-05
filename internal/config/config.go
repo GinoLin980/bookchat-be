@@ -22,6 +22,7 @@ func GetConfig(logger *slog.Logger) Config {
 	dbPswd := os.Getenv("PG_PSWD")
 	dbName := os.Getenv("PG_DB")
 
+	// panic when important data not set!
 	if dbHost == "" || dbPort == "" || dbUser == "" || dbPswd == "" || dbName == "" {
 		slog.Error("Database env var not set")
 		os.Exit(1)

@@ -32,21 +32,30 @@ import (
 // @name                       Authorization
 // @description                "Bearer {JWT}"
 func main() {
+	// context to receive SIGKILL from host
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	// defer(stop in the end)
 	defer stop()
+
+	// initialize a logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
+	// .env loader for local development
 	if err := godotenv.Load(); err != nil {
 		logger.Warn("failed to load .env")
 	}
 
+	// get the environment variables
 	config := config.GetConfig(logger)
 
+	// connect the database
 	db := database.ConnectDB(config, logger)
 	// db.AutoMigrate(&model.User{}, &model.Room{}, &model.Comment{})
 
+	// Echo server
 	e := echo.New()
 
+	// custom validator by PlayGround and better 400 response format
 	e.Validator = &customvalidator.CustomValidator{V: customvalidator.InitValidator()}
 	e.HTTPErrorHandler = func(c *echo.Context, err error) {
 		if resp, rerr := echo.UnwrapResponse(c.Response()); rerr == nil && resp != nil && resp.Committed {
@@ -63,6 +72,8 @@ func main() {
 		}
 		echo.DefaultHTTPErrorHandler(true)(c, err)
 	}
+
+	// Disable CORS
 	e.Pre(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodOptions},
@@ -70,24 +81,29 @@ func main() {
 		MaxAge:       3600,
 	}))
 	e.Use(middleware.RequestLogger())
-	e.Use(middleware.Recover())
+	e.Use(middleware.Recover()) // won't stop the server after panic
 	e.Pre(middleware.RemoveTrailingSlash())
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20))) // rate limiter so it won't burn my wallet
 	e.Use(middleware.BodyLimit(1 << 20))
 
+	// load all routes
 	route.LoadRoutes(e, config.JWTSecret, db, logger)
 
+	// easy endpoint for testing
 	e.GET("/", func(c *echo.Context) error {
 		return c.JSON(200, map[string]string{"hello": "world"})
 	})
 
+	// API docs
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
+	// get the port env, required by Cloud Run
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
+	// start config including the GracefulTimeout of 5 sec
 	sc := echo.StartConfig{
 		Address:         ":" + port,
 		HideBanner:      true,

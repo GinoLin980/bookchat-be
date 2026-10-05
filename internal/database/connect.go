@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// form DSN and use GORM Postgres driver to connnect
 func ConnectDB(config config.Config, logger *slog.Logger) *gorm.DB {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=prefer",

@@ -18,6 +18,7 @@ type jwtService struct {
 }
 
 func NewJWTService(secret string, logger *slog.Logger) JWTService {
+	// panics everything called
 	if secret == "" {
 		logger.Error("JWT secret not provided!")
 		return nil
